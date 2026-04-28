@@ -1,0 +1,642 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FlightLine Pro — Instructor Portal</title>
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --red: #E8381A;
+    --bg: #0a0b0d;
+    --surface: #111317;
+    --surface2: #181b20;
+    --border: #23272e;
+    --text: #e8eaed;
+    --text-dim: #7a8190;
+    --text-muted: #444b57;
+    --green: #2ecc71;
+    --yellow: #f0c330;
+    --blue: #4a9eff;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { background:var(--bg); color:var(--text); font-family:'IBM Plex Sans',sans-serif; min-height:100vh; display:flex; }
+
+  .sidebar { width:220px; min-height:100vh; background:var(--surface); border-right:1px solid var(--border); display:flex; flex-direction:column; flex-shrink:0; position:fixed; top:0; left:0; bottom:0; z-index:100; }
+  .sidebar-logo { padding:24px 20px 20px; border-bottom:1px solid var(--border); }
+  .logo-line1 { font-family:'Rajdhani',sans-serif; font-size:18px; font-weight:700; letter-spacing:0.08em; text-transform:uppercase; }
+  .logo-line2 { font-family:'IBM Plex Mono',monospace; font-size:9px; color:var(--red); letter-spacing:0.15em; text-transform:uppercase; margin-top:2px; }
+  .sidebar-school { padding:16px 20px; border-bottom:1px solid var(--border); }
+  .school-label { font-size:9px; letter-spacing:0.12em; color:var(--text-muted); text-transform:uppercase; margin-bottom:4px; }
+  .school-name { font-size:13px; font-weight:500; }
+  .school-term { font-size:11px; color:var(--text-dim); margin-top:2px; }
+  .sidebar-nav { padding:16px 0; flex:1; }
+  .nav-label { font-size:9px; letter-spacing:0.12em; color:var(--text-muted); text-transform:uppercase; padding:0 20px; margin-bottom:6px; margin-top:12px; }
+  .nav-section { padding:0 12px; }
+  .nav-item { display:flex; align-items:center; gap:10px; padding:8px 10px; border-radius:6px; font-size:13px; color:var(--text-dim); cursor:pointer; transition:all 0.15s; }
+  .nav-item:hover { background:var(--surface2); color:var(--text); }
+  .nav-item.active { background:rgba(232,56,26,0.12); color:var(--red); font-weight:500; }
+  .nav-icon { width:16px; height:16px; opacity:0.7; flex-shrink:0; }
+  .nav-item.active .nav-icon { opacity:1; }
+  .sidebar-footer { padding:16px 20px; border-top:1px solid var(--border); }
+  .instructor-name { font-size:12px; font-weight:500; }
+  .instructor-role { font-size:11px; color:var(--text-dim); margin-top:1px; }
+
+  .main { margin-left:220px; flex:1; display:flex; flex-direction:column; min-height:100vh; }
+  .topbar { height:56px; background:var(--surface); border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; padding:0 32px; position:sticky; top:0; z-index:10; }
+  .topbar-title { font-family:'Rajdhani',sans-serif; font-size:16px; font-weight:600; letter-spacing:0.06em; text-transform:uppercase; }
+  .sync-badge { font-family:'IBM Plex Mono',monospace; font-size:10px; color:var(--green); letter-spacing:0.08em; display:flex; align-items:center; }
+  .sync-dot { display:inline-block; width:6px; height:6px; border-radius:50%; background:var(--green); margin-right:6px; animation:pulse 2s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+  .tabs { display:flex; border-bottom:1px solid var(--border); padding:0 32px; background:var(--surface); }
+  .tab { padding:14px 18px; font-size:12px; font-weight:500; color:var(--text-muted); cursor:pointer; border-bottom:2px solid transparent; margin-bottom:-1px; letter-spacing:0.04em; transition:all 0.15s; }
+  .tab:hover { color:var(--text-dim); }
+  .tab.active { color:var(--text); border-bottom-color:var(--red); }
+
+  .content { padding:32px; flex:1; }
+  .view { display:none; }
+  .view.active { display:block; animation:fadein 0.2s ease; }
+  @keyframes fadein { from{opacity:0;transform:translateY(4px)} to{opacity:1;transform:translateY(0)} }
+
+  .stats-row { display:grid; grid-template-columns:repeat(4,1fr); gap:16px; margin-bottom:28px; }
+  .stat-card { background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:20px; position:relative; overflow:hidden; }
+  .stat-card::before { content:''; position:absolute; top:0; left:0; right:0; height:2px; }
+  .stat-card.alert::before { background:var(--red); }
+  .stat-card.good::before { background:var(--green); }
+  .stat-card.warn::before { background:var(--yellow); }
+  .stat-card.info::before { background:var(--blue); }
+  .stat-label { font-size:10px; letter-spacing:0.12em; color:var(--text-muted); text-transform:uppercase; margin-bottom:10px; }
+  .stat-value { font-family:'Rajdhani',sans-serif; font-size:36px; font-weight:700; line-height:1; }
+  .stat-sub { font-size:11px; color:var(--text-dim); margin-top:6px; }
+
+  .section-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; }
+  .section-title { font-family:'Rajdhani',sans-serif; font-size:13px; font-weight:600; letter-spacing:0.1em; text-transform:uppercase; color:var(--text-dim); }
+  .section-action { font-size:11px; color:var(--red); cursor:pointer; font-weight:500; }
+  .section-action:hover { text-decoration:underline; }
+
+  .two-col { display:grid; grid-template-columns:1fr 380px; gap:20px; margin-bottom:20px; }
+
+  .card { background:var(--surface); border:1px solid var(--border); border-radius:8px; overflow:hidden; }
+  .card-header { padding:14px 18px; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; }
+  .card-title { font-family:'Rajdhani',sans-serif; font-size:12px; font-weight:600; letter-spacing:0.1em; text-transform:uppercase; color:var(--text-dim); }
+  .card-body { padding:14px 18px; }
+
+  table { width:100%; border-collapse:collapse; }
+  thead tr { background:var(--surface2); }
+  th { padding:10px 16px; text-align:left; font-size:9px; letter-spacing:0.12em; text-transform:uppercase; color:var(--text-muted); font-weight:500; font-family:'IBM Plex Mono',monospace; border-bottom:1px solid var(--border); }
+  td { padding:11px 16px; font-size:13px; border-bottom:1px solid rgba(35,39,46,0.6); vertical-align:middle; }
+  tbody tr { transition:background 0.1s; cursor:pointer; }
+  tbody tr:hover { background:var(--surface2); }
+  tbody tr:last-child td { border-bottom:none; }
+  tbody tr.selected { background:rgba(232,56,26,0.06); }
+
+  .student-name { font-weight:500; }
+  .student-id { font-family:'IBM Plex Mono',monospace; font-size:10px; color:var(--text-muted); margin-top:2px; }
+
+  .score-pill { display:inline-flex; align-items:center; justify-content:center; font-family:'IBM Plex Mono',monospace; font-size:12px; font-weight:500; padding:3px 8px; border-radius:4px; min-width:44px; }
+  .score-high { background:rgba(46,204,113,0.12); color:var(--green); }
+  .score-mid { background:rgba(240,195,48,0.12); color:var(--yellow); }
+  .score-low { background:rgba(232,56,26,0.12); color:var(--red); }
+  .score-none { background:var(--surface2); color:var(--text-muted); }
+
+  .status-dot { display:inline-block; width:7px; height:7px; border-radius:50%; margin-right:6px; }
+  .dot-active { background:var(--green); }
+  .dot-warn { background:var(--yellow); }
+  .dot-inactive { background:var(--text-muted); }
+
+  .view-btn { font-size:11px; color:var(--red); font-weight:500; cursor:pointer; white-space:nowrap; padding:4px 10px; border:1px solid rgba(232,56,26,0.3); border-radius:4px; transition:all 0.15s; display:inline-block; }
+  .view-btn:hover { background:rgba(232,56,26,0.1); }
+
+  .gap-row { display:flex; align-items:center; gap:10px; margin-bottom:10px; }
+  .gap-row:last-child { margin-bottom:0; }
+  .gap-code { font-family:'IBM Plex Mono',monospace; font-size:10px; color:var(--red); flex-shrink:0; width:90px; }
+  .gap-label { font-size:12px; flex:1; }
+  .gap-count { font-family:'IBM Plex Mono',monospace; font-size:11px; color:var(--text-dim); flex-shrink:0; width:28px; text-align:right; }
+  .gap-bar-bg { width:70px; height:5px; background:var(--surface2); border-radius:3px; flex-shrink:0; overflow:hidden; }
+  .gap-bar-fill { height:100%; border-radius:3px; background:var(--red); opacity:0.8; }
+
+  .aerix-card { background:var(--surface); border:1px solid var(--border); border-radius:8px; overflow:hidden; }
+  .aerix-header { padding:14px 18px; border-bottom:1px solid var(--border); }
+  .aerix-logo { font-family:'Rajdhani',sans-serif; font-size:14px; font-weight:700; letter-spacing:0.1em; color:var(--red); }
+  .aerix-sub { font-size:10px; color:var(--text-muted); letter-spacing:0.08em; }
+  .aerix-context { padding:10px 18px; border-bottom:1px solid var(--border); background:var(--surface2); font-size:12px; color:var(--text-dim); }
+  .aerix-context span { color:var(--text); font-weight:500; }
+  .aerix-body { padding:14px 18px; }
+  .aerix-message { font-size:12px; line-height:1.65; color:var(--text-dim); }
+  .aerix-message strong { color:var(--text); font-weight:500; }
+  .aerix-tag { display:inline-block; background:rgba(232,56,26,0.1); border:1px solid rgba(232,56,26,0.25); color:var(--red); font-family:'IBM Plex Mono',monospace; font-size:10px; padding:2px 7px; border-radius:3px; margin:2px 2px 2px 0; }
+  .aerix-tags { margin-top:10px; }
+
+  .notice { background:rgba(232,56,26,0.08); border:1px solid rgba(232,56,26,0.2); border-radius:6px; padding:10px 16px; font-size:12px; color:var(--text-dim); margin-bottom:20px; display:flex; align-items:center; gap:10px; }
+  .notice-name { color:var(--red); font-weight:500; }
+
+  .back-btn { display:inline-flex; align-items:center; gap:6px; font-size:12px; color:var(--red); cursor:pointer; margin-bottom:24px; font-weight:500; }
+  .back-btn:hover { opacity:0.7; }
+
+  .student-hero { background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:24px; margin-bottom:20px; display:flex; align-items:center; justify-content:space-between; }
+  .student-avatar { width:48px; height:48px; border-radius:8px; background:rgba(232,56,26,0.12); border:1px solid rgba(232,56,26,0.25); display:flex; align-items:center; justify-content:center; font-family:'Rajdhani',sans-serif; font-size:18px; font-weight:700; color:var(--red); flex-shrink:0; }
+  .student-hero-name { font-family:'Rajdhani',sans-serif; font-size:22px; font-weight:700; letter-spacing:0.04em; }
+  .student-hero-meta { font-size:12px; color:var(--text-dim); margin-top:4px; }
+  .student-hero-scores { display:flex; gap:20px; }
+  .hero-score-item { text-align:center; }
+  .hero-score-label { font-size:9px; letter-spacing:0.1em; text-transform:uppercase; color:var(--text-muted); margin-bottom:6px; }
+  .hero-score-val { font-family:'Rajdhani',sans-serif; font-size:28px; font-weight:700; line-height:1; }
+
+  .detail-three-col { display:grid; grid-template-columns:1fr 1fr 1fr; gap:16px; margin-bottom:20px; }
+
+  .attempt-row { display:flex; align-items:center; gap:10px; padding:9px 0; border-bottom:1px solid rgba(35,39,46,0.6); }
+  .attempt-row:last-child { border-bottom:none; }
+  .attempt-num { font-family:'IBM Plex Mono',monospace; font-size:10px; color:var(--text-muted); width:22px; flex-shrink:0; }
+  .attempt-date { font-size:11px; color:var(--text-dim); flex:1; }
+  .attempt-bar-bg { width:70px; height:5px; background:var(--surface2); border-radius:3px; flex-shrink:0; overflow:hidden; }
+  .attempt-bar-fill { height:100%; border-radius:3px; }
+  .bar-high { background:var(--green); }
+  .bar-mid { background:var(--yellow); }
+  .bar-low { background:var(--red); }
+  .attempt-pct { font-family:'IBM Plex Mono',monospace; font-size:11px; font-weight:500; width:32px; text-align:right; flex-shrink:0; }
+
+  .acs-grid { display:grid; grid-template-columns:1fr 1fr; gap:20px; }
+  .acs-row { display:flex; align-items:center; gap:10px; margin-bottom:10px; }
+  .acs-row:last-child { margin-bottom:0; }
+  .acs-code { font-family:'IBM Plex Mono',monospace; font-size:10px; color:var(--red); flex-shrink:0; width:90px; }
+  .acs-topic { font-size:12px; flex:1; }
+  .acs-bar-bg { width:70px; height:5px; background:var(--surface2); border-radius:3px; flex-shrink:0; overflow:hidden; }
+  .acs-bar-fill { height:100%; border-radius:3px; background:var(--red); opacity:0.75; }
+  .acs-pct { font-family:'IBM Plex Mono',monospace; font-size:10px; color:var(--text-dim); width:32px; text-align:right; flex-shrink:0; }
+
+  .aerix-full { background:var(--surface); border:1px solid var(--border); border-radius:8px; overflow:hidden; }
+  .aerix-full-header { padding:18px 24px; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; }
+  .aerix-full-logo { font-family:'Rajdhani',sans-serif; font-size:20px; font-weight:700; letter-spacing:0.1em; color:var(--red); }
+  .aerix-full-sub { font-size:11px; color:var(--text-muted); margin-top:2px; letter-spacing:0.06em; }
+  .aerix-pills { display:flex; gap:8px; flex-wrap:wrap; padding:14px 24px; border-bottom:1px solid var(--border); background:var(--surface2); }
+  .aerix-pill { font-size:12px; padding:5px 12px; border-radius:4px; cursor:pointer; border:1px solid var(--border); color:var(--text-dim); transition:all 0.15s; }
+  .aerix-pill:hover { border-color:var(--red); color:var(--text); }
+  .aerix-pill.active { background:rgba(232,56,26,0.1); border-color:rgba(232,56,26,0.4); color:var(--red); font-weight:500; }
+  .aerix-diag-body { padding:24px; }
+  .aerix-diag-name { font-family:'Rajdhani',sans-serif; font-size:18px; font-weight:700; margin-bottom:4px; }
+  .aerix-diag-meta { font-size:11px; color:var(--text-dim); margin-bottom:16px; }
+  .aerix-diag-text { font-size:13px; line-height:1.7; color:var(--text-dim); border-left:2px solid var(--red); padding-left:16px; margin-bottom:16px; }
+  .aerix-diag-text strong { color:var(--text); }
+
+  .footer-strip { padding:12px 32px; border-top:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; background:var(--surface); }
+  .footer-brand { font-family:'IBM Plex Mono',monospace; font-size:10px; color:var(--text-muted); letter-spacing:0.08em; }
+  .footer-brand span { color:var(--red); }
+</style>
+</head>
+<body>
+
+<div class="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-line1">FlightLine<span style="color:var(--red)">Pro</span></div>
+    <div class="logo-line2">Instructor Portal</div>
+  </div>
+  <div class="sidebar-school">
+    <div class="school-label">Institution</div>
+    <div class="school-name">Aims Community College</div>
+    <div class="school-term">Spring 2026 · AMT-101</div>
+  </div>
+  <div class="sidebar-nav">
+    <div class="nav-label">Overview</div>
+    <div class="nav-section">
+      <div class="nav-item active" id="nav-overview" onclick="showTab('overview');setNav('overview')">
+        <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="1" width="6" height="6" rx="1"/><rect x="9" y="1" width="6" height="6" rx="1"/><rect x="1" y="9" width="6" height="6" rx="1"/><rect x="9" y="9" width="6" height="6" rx="1"/></svg>
+        Dashboard
+      </div>
+      <div class="nav-item" id="nav-roster" onclick="showTab('roster');setNav('roster')">
+        <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="6" cy="5" r="3"/><path d="M1 14c0-3 2-5 5-5h0c3 0 5 2 5 5"/><path d="M11 3l1.5 1.5L15 2"/></svg>
+        Roster
+      </div>
+      <div class="nav-item" id="nav-acs" onclick="showTab('acs');setNav('acs')">
+        <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 12V4l5-2 5 2v8l-5 2-5-2z"/></svg>
+        ACS Gap Report
+      </div>
+    </div>
+    <div class="nav-label">Tools</div>
+    <div class="nav-section">
+      <div class="nav-item" id="nav-aerix" onclick="showTab('aerix');setNav('aerix')">
+        <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 1l2 4 5 .5-3.5 3.5 1 5L8 12l-4.5 2 1-5L1 5.5 6 5z"/></svg>
+        ÆRIX Diagnostics
+      </div>
+    </div>
+  </div>
+  <div class="sidebar-footer">
+    <div class="instructor-name">Michael Sasso</div>
+    <div class="instructor-role">Aviation Maintenance Chief</div>
+  </div>
+</div>
+
+<div class="main">
+  <div class="topbar">
+    <div class="topbar-title" id="topbar-title">Program Dashboard</div>
+    <div style="display:flex;align-items:center;gap:20px;">
+      <div class="sync-badge"><span class="sync-dot"></span>Live sync</div>
+      <div style="font-size:12px;color:var(--text-dim)">Spring 2026</div>
+    </div>
+  </div>
+
+  <div class="tabs">
+    <div class="tab active" id="tab-overview" onclick="showTab('overview');setNav('overview')">Overview</div>
+    <div class="tab" id="tab-roster" onclick="showTab('roster');setNav('roster')">Roster</div>
+    <div class="tab" id="tab-acs" onclick="showTab('acs');setNav('acs')">ACS Gaps</div>
+    <div class="tab" id="tab-aerix" onclick="showTab('aerix');setNav('aerix')">ÆRIX Diagnostics</div>
+  </div>
+
+  <div class="content">
+
+    <!-- OVERVIEW -->
+    <div class="view active" id="view-overview">
+      <!-- Banner: only Thompson has zero exam attempts. Patel has attempted General. -->
+      <div class="notice">
+        <span style="color:var(--red)">⚠</span>
+        <span><span class="notice-name">Thompson, K.</span> has no exam activity on record. Immediate instructor outreach is recommended.</span>
+      </div>
+      <div class="stats-row">
+        <div class="stat-card info"><div class="stat-label">Enrolled Students</div><div class="stat-value">24</div><div class="stat-sub">AMT-101 · Spring 2026</div></div>
+        <div class="stat-card good"><div class="stat-label">Class Avg Score</div><div class="stat-value">71<span style="font-size:20px;color:var(--text-dim)">%</span></div><div class="stat-sub">↑ 4pts from last week</div></div>
+        <div class="stat-card warn"><div class="stat-label">Below Pass Threshold</div><div class="stat-value" style="color:var(--yellow)">7</div><div class="stat-sub">FAA passing score: 70%</div></div>
+        <div class="stat-card alert"><div class="stat-label">Top ACS Gap</div><div class="stat-value" style="font-size:18px;line-height:1.3;color:var(--red)">AM.I.C.K4</div><div class="stat-sub">Weight &amp; Balance · 14 of 24</div></div>
+      </div>
+      <div class="two-col">
+        <div>
+          <div class="section-header"><div class="section-title">Student Roster</div><div class="section-action" onclick="showTab('roster');setNav('roster')">View all →</div></div>
+          <div class="card">
+            <table>
+              <thead><tr><th>Student</th><th>General</th><th>Airframe</th><th>Powerplant</th><th>Status</th><th></th></tr></thead>
+              <tbody>
+                <tr class="selected" onclick="showStudent('martinez')">
+                  <td><div class="student-name" style="color:var(--yellow)">Martinez, J.</div><div class="student-id">#AMT-0041</div></td>
+                  <td><span class="score-pill score-high">84%</span></td><td><span class="score-pill score-mid">68%</span></td><td><span class="score-pill score-low">61%</span></td>
+                  <td><span class="status-dot dot-warn"></span><span style="font-size:12px;color:var(--yellow)">At Risk</span></td>
+                  <td><span class="view-btn">View →</span></td>
+                </tr>
+                <tr onclick="showStudent('chen')">
+                  <td><div class="student-name">Chen, L.</div><div class="student-id">#AMT-0038</div></td>
+                  <td><span class="score-pill score-high">91%</span></td><td><span class="score-pill score-high">88%</span></td><td><span class="score-pill score-high">79%</span></td>
+                  <td><span class="status-dot dot-active"></span><span style="font-size:12px;color:var(--text-dim)">Active</span></td>
+                  <td><span class="view-btn">View →</span></td>
+                </tr>
+                <tr onclick="showStudent('williams')">
+                  <td><div class="student-name" style="color:var(--yellow)">Williams, D.</div><div class="student-id">#AMT-0029</div></td>
+                  <td><span class="score-pill score-mid">72%</span></td><td><span class="score-pill score-low">55%</span></td><td><span class="score-pill score-none">—</span></td>
+                  <td><span class="status-dot dot-warn"></span><span style="font-size:12px;color:var(--yellow)">At Risk</span></td>
+                  <td><span class="view-btn">View →</span></td>
+                </tr>
+                <tr onclick="showStudent('patel')">
+                  <td><div class="student-name" style="color:var(--yellow)">Patel, R.</div><div class="student-id">#AMT-0062</div></td>
+                  <td><span class="score-pill score-low">58%</span></td><td><span class="score-pill score-none">—</span></td><td><span class="score-pill score-none">—</span></td>
+                  <td><span class="status-dot dot-warn"></span><span style="font-size:12px;color:var(--yellow)">At Risk</span></td>
+                  <td><span class="view-btn">View →</span></td>
+                </tr>
+                <tr onclick="showStudent('rodriguez')">
+                  <td><div class="student-name" style="color:var(--red)">Rodriguez, A.</div><div class="student-id">#AMT-0033</div></td>
+                  <td><span class="score-pill score-low">63%</span></td><td><span class="score-pill score-low">59%</span></td><td><span class="score-pill score-low">54%</span></td>
+                  <td><span class="status-dot dot-warn"></span><span style="font-size:12px;color:var(--red)">At Risk</span></td>
+                  <td><span class="view-btn">View →</span></td>
+                </tr>
+                <tr onclick="showStudent('thompson')">
+                  <td><div class="student-name" style="color:var(--red)">Thompson, K.</div><div class="student-id">#AMT-0071</div></td>
+                  <td><span class="score-pill score-none">—</span></td><td><span class="score-pill score-none">—</span></td><td><span class="score-pill score-none">—</span></td>
+                  <td><span class="status-dot dot-inactive"></span><span style="font-size:12px;color:var(--text-muted)">No Activity</span></td>
+                  <td><span class="view-btn">View →</span></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:16px;">
+          <div class="card">
+            <div class="card-header"><div class="card-title">Top ACS Gaps — Class Wide</div><div style="font-size:10px;color:var(--text-muted)">All 3 exams</div></div>
+            <div class="card-body">
+              <div class="gap-row"><div class="gap-code">AM.I.C.K4</div><div class="gap-label">Weight &amp; Balance</div><div class="gap-bar-bg"><div class="gap-bar-fill" style="width:85%"></div></div><div class="gap-count">14</div></div>
+              <div class="gap-row"><div class="gap-code">AM.II.F.K2</div><div class="gap-label">Hydraulic Systems</div><div class="gap-bar-bg"><div class="gap-bar-fill" style="width:70%"></div></div><div class="gap-count">11</div></div>
+              <div class="gap-row"><div class="gap-code">AM.III.F.K7</div><div class="gap-label">Electrical Wiring</div><div class="gap-bar-bg"><div class="gap-bar-fill" style="width:58%"></div></div><div class="gap-count">9</div></div>
+              <div class="gap-row"><div class="gap-code">AM.I.I.K1</div><div class="gap-label">CFR 65 Privileges</div><div class="gap-bar-bg"><div class="gap-bar-fill" style="width:48%"></div></div><div class="gap-count">8</div></div>
+              <div class="gap-row"><div class="gap-code">AM.III.B.K1</div><div class="gap-label">Turbine Engine Theory</div><div class="gap-bar-bg"><div class="gap-bar-fill" style="width:38%"></div></div><div class="gap-count">6</div></div>
+            </div>
+          </div>
+          <div class="aerix-card">
+            <div class="aerix-header"><div class="aerix-logo">ÆRIX™</div><div class="aerix-sub">AI DIAGNOSTIC · LATEST ALERT</div></div>
+            <div class="aerix-context">Viewing: <span>Martinez, J.</span> · Powerplant · Apr 21</div>
+            <div class="aerix-body">
+              <div class="aerix-message">Martinez scored <strong>61%</strong> on Powerplant — below the FAA passing threshold. Miss pattern concentrated on <strong>AM.III.B.K1</strong> (turbine theory) and <strong>AM.III.I.K2</strong> (fuel metering). Reference FAA-H-8083-32, Chapters 1 and 2.</div>
+              <div class="aerix-tags"><span class="aerix-tag">AM.III.B.K1</span><span class="aerix-tag">AM.III.I.K2</span><span class="aerix-tag">8083-32</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ROSTER -->
+    <div class="view" id="view-roster">
+      <div class="section-header"><div class="section-title">Full Student Roster — AMT-101</div><div class="section-action">Export CSV</div></div>
+      <div class="card">
+        <table>
+          <thead><tr><th>Student</th><th>General</th><th>Airframe</th><th>Powerplant</th><th>Attempts</th><th>Last Active</th><th>Status</th><th></th></tr></thead>
+          <tbody>
+            <tr onclick="showStudent('chen')"><td><div class="student-name">Chen, L.</div><div class="student-id">#AMT-0038</div></td><td><span class="score-pill score-high">91%</span></td><td><span class="score-pill score-high">88%</span></td><td><span class="score-pill score-high">79%</span></td><td style="font-family:'IBM Plex Mono',monospace;font-size:12px">12</td><td style="font-size:11px;color:var(--text-dim)">Apr 21</td><td><span class="status-dot dot-active"></span><span style="font-size:12px;color:var(--text-dim)">Active</span></td><td><span class="view-btn">View →</span></td></tr>
+            <tr onclick="showStudent('johnson')"><td><div class="student-name">Johnson, M.</div><div class="student-id">#AMT-0047</div></td><td><span class="score-pill score-high">82%</span></td><td><span class="score-pill score-high">80%</span></td><td><span class="score-pill score-high">77%</span></td><td style="font-family:'IBM Plex Mono',monospace;font-size:12px">10</td><td style="font-size:11px;color:var(--text-dim)">Apr 20</td><td><span class="status-dot dot-active"></span><span style="font-size:12px;color:var(--text-dim)">Active</span></td><td><span class="view-btn">View →</span></td></tr>
+            <tr class="selected" onclick="showStudent('martinez')"><td><div class="student-name" style="color:var(--yellow)">Martinez, J.</div><div class="student-id">#AMT-0041</div></td><td><span class="score-pill score-high">84%</span></td><td><span class="score-pill score-mid">68%</span></td><td><span class="score-pill score-low">61%</span></td><td style="font-family:'IBM Plex Mono',monospace;font-size:12px">9</td><td style="font-size:11px;color:var(--text-dim)">Apr 21</td><td><span class="status-dot dot-warn"></span><span style="font-size:12px;color:var(--yellow)">At Risk</span></td><td><span class="view-btn">View →</span></td></tr>
+            <tr onclick="showStudent('okafor')"><td><div class="student-name">Okafor, T.</div><div class="student-id">#AMT-0055</div></td><td><span class="score-pill score-high">78%</span></td><td><span class="score-pill score-high">75%</span></td><td><span class="score-pill score-mid">70%</span></td><td style="font-family:'IBM Plex Mono',monospace;font-size:12px">8</td><td style="font-size:11px;color:var(--text-dim)">Apr 19</td><td><span class="status-dot dot-active"></span><span style="font-size:12px;color:var(--text-dim)">Active</span></td><td><span class="view-btn">View →</span></td></tr>
+            <tr onclick="showStudent('williams')"><td><div class="student-name" style="color:var(--yellow)">Williams, D.</div><div class="student-id">#AMT-0029</div></td><td><span class="score-pill score-mid">72%</span></td><td><span class="score-pill score-low">55%</span></td><td><span class="score-pill score-none">—</span></td><td style="font-family:'IBM Plex Mono',monospace;font-size:12px">5</td><td style="font-size:11px;color:var(--text-dim)">Apr 20</td><td><span class="status-dot dot-warn"></span><span style="font-size:12px;color:var(--yellow)">At Risk</span></td><td><span class="view-btn">View →</span></td></tr>
+            <tr onclick="showStudent('rodriguez')"><td><div class="student-name" style="color:var(--red)">Rodriguez, A.</div><div class="student-id">#AMT-0033</div></td><td><span class="score-pill score-low">63%</span></td><td><span class="score-pill score-low">59%</span></td><td><span class="score-pill score-low">54%</span></td><td style="font-family:'IBM Plex Mono',monospace;font-size:12px">7</td><td style="font-size:11px;color:var(--text-dim)">Apr 17</td><td><span class="status-dot dot-warn"></span><span style="font-size:12px;color:var(--red)">At Risk</span></td><td><span class="view-btn">View →</span></td></tr>
+            <tr onclick="showStudent('patel')"><td><div class="student-name" style="color:var(--yellow)">Patel, R.</div><div class="student-id">#AMT-0062</div></td><td><span class="score-pill score-low">58%</span></td><td><span class="score-pill score-none">—</span></td><td><span class="score-pill score-none">—</span></td><td style="font-family:'IBM Plex Mono',monospace;font-size:12px">2</td><td style="font-size:11px;color:var(--text-dim)">Apr 15</td><td><span class="status-dot dot-warn"></span><span style="font-size:12px;color:var(--yellow)">At Risk</span></td><td><span class="view-btn">View →</span></td></tr>
+            <tr onclick="showStudent('thompson')"><td><div class="student-name" style="color:var(--red)">Thompson, K.</div><div class="student-id">#AMT-0071</div></td><td><span class="score-pill score-none">—</span></td><td><span class="score-pill score-none">—</span></td><td><span class="score-pill score-none">—</span></td><td style="font-family:'IBM Plex Mono',monospace;font-size:12px">0</td><td style="font-size:11px;color:var(--text-muted)">Never</td><td><span class="status-dot dot-inactive"></span><span style="font-size:12px;color:var(--text-muted)">No Activity</span></td><td><span class="view-btn">View →</span></td></tr>
+          </tbody>
+        </table>
+        <div style="padding:12px 16px;font-size:11px;color:var(--text-muted);border-top:1px solid var(--border)">Showing 8 of 24 students</div>
+      </div>
+    </div>
+
+    <!-- STUDENT DETAIL -->
+    <div class="view" id="view-student">
+      <div class="back-btn" id="back-btn" onclick="goBack()">← Back</div>
+      <div class="student-hero" id="student-hero"></div>
+      <div class="detail-three-col">
+        <div class="card"><div class="card-header"><div class="card-title">General — History</div></div><div class="card-body" id="hist-general"></div></div>
+        <div class="card"><div class="card-header"><div class="card-title">Airframe — History</div></div><div class="card-body" id="hist-airframe"></div></div>
+        <div class="card"><div class="card-header"><div class="card-title">Powerplant — History</div></div><div class="card-body" id="hist-powerplant"></div></div>
+      </div>
+      <div class="section-header"><div class="section-title">ACS Weak Areas</div></div>
+      <div class="card" style="margin-bottom:20px;"><div class="card-body" id="student-gaps"></div></div>
+      <div class="section-header"><div class="section-title">ÆRIX™ Diagnostic Report</div></div>
+      <div class="aerix-full">
+        <div class="aerix-full-header">
+          <div><div class="aerix-full-logo">ÆRIX™</div><div class="aerix-full-sub">AI-GENERATED DIAGNOSTIC REPORT</div></div>
+          <div style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--text-muted)" id="aerix-ts"></div>
+        </div>
+        <div id="aerix-detail"></div>
+      </div>
+    </div>
+
+    <!-- ACS GAPS TAB -->
+    <div class="view" id="view-acs">
+      <div class="notice"><span style="color:var(--red)">⚠</span><span>AM.I.C.K4 (Weight &amp; Balance — CG calculation) is the #1 knowledge gap across General and Airframe. A focused class review session on moment and CG calculation procedures could measurably improve overall pass rates.</span></div>
+      <div class="acs-grid">
+        <div class="card">
+          <div class="card-header"><div class="card-title">General</div><div style="font-size:11px;color:var(--text-muted)">60 questions</div></div>
+          <div class="card-body">
+            <div class="acs-row"><div class="acs-code">AM.I.C.K4</div><div class="acs-topic">Weight &amp; Balance — CG Calc</div><div class="acs-bar-bg"><div class="acs-bar-fill" style="width:85%"></div></div><div class="acs-pct" style="color:var(--red)">14/24</div></div>
+            <div class="acs-row"><div class="acs-code">AM.I.I.K1</div><div class="acs-topic">Mechanic Certificate Privileges</div><div class="acs-bar-bg"><div class="acs-bar-fill" style="width:48%"></div></div><div class="acs-pct" style="color:var(--yellow)">8/24</div></div>
+            <div class="acs-row"><div class="acs-code">AM.I.K.K3</div><div class="acs-topic">NDT Procedures &amp; Methods</div><div class="acs-bar-bg"><div class="acs-bar-fill" style="width:35%"></div></div><div class="acs-pct">6/24</div></div>
+            <div class="acs-row"><div class="acs-code">AM.I.F.K1</div><div class="acs-topic">Aircraft Towing Procedures</div><div class="acs-bar-bg"><div class="acs-bar-fill" style="width:20%"></div></div><div class="acs-pct">4/24</div></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header"><div class="card-title">Airframe</div><div style="font-size:11px;color:var(--text-muted)">100 questions</div></div>
+          <div class="card-body">
+            <div class="acs-row"><div class="acs-code">AM.II.F.K2</div><div class="acs-topic">Hydraulic System Operation</div><div class="acs-bar-bg"><div class="acs-bar-fill" style="width:70%"></div></div><div class="acs-pct" style="color:var(--red)">11/24</div></div>
+            <div class="acs-row"><div class="acs-code">AM.II.A.K8</div><div class="acs-topic">Rivet Removal &amp; Installation</div><div class="acs-bar-bg"><div class="acs-bar-fill" style="width:45%"></div></div><div class="acs-pct" style="color:var(--yellow)">7/24</div></div>
+            <div class="acs-row"><div class="acs-code">AM.II.E.K2</div><div class="acs-topic">Landing Gear Components</div><div class="acs-bar-bg"><div class="acs-bar-fill" style="width:30%"></div></div><div class="acs-pct">5/24</div></div>
+            <div class="acs-row"><div class="acs-code">AM.II.C.K10</div><div class="acs-topic">Flight Control Rigging</div><div class="acs-bar-bg"><div class="acs-bar-fill" style="width:18%"></div></div><div class="acs-pct">3/24</div></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header"><div class="card-title">Powerplant</div><div style="font-size:11px;color:var(--text-muted)">100 questions</div></div>
+          <div class="card-body">
+            <div class="acs-row"><div class="acs-code">AM.III.B.K1</div><div class="acs-topic">Turbine Engine Theory</div><div class="acs-bar-bg"><div class="acs-bar-fill" style="width:65%"></div></div><div class="acs-pct" style="color:var(--red)">10/24</div></div>
+            <div class="acs-row"><div class="acs-code">AM.III.I.K2</div><div class="acs-topic">Float Carburetor / Fuel Metering</div><div class="acs-bar-bg"><div class="acs-bar-fill" style="width:50%"></div></div><div class="acs-pct" style="color:var(--yellow)">8/24</div></div>
+            <div class="acs-row"><div class="acs-code">AM.III.F.K7</div><div class="acs-topic">Wire Size &amp; Circuit Protection</div><div class="acs-bar-bg"><div class="acs-bar-fill" style="width:38%"></div></div><div class="acs-pct">6/24</div></div>
+            <div class="acs-row"><div class="acs-code">AM.III.C.K7</div><div class="acs-topic">Engine Component Inspection</div><div class="acs-bar-bg"><div class="acs-bar-fill" style="width:22%"></div></div><div class="acs-pct">4/24</div></div>
+          </div>
+        </div>
+        <div class="card" style="border-top:2px solid var(--red);">
+          <div class="card-header"><div class="card-title" style="color:var(--red)">Class Summary</div></div>
+          <div class="card-body" style="font-size:12px;color:var(--text-dim);line-height:1.8">
+            <strong style="color:var(--text)">7 students</strong> are below the 70% FAA passing threshold on at least one exam.<br>
+            <strong style="color:var(--text)">AM.I.C.K4</strong> (Weight &amp; Balance CG calculation) is the #1 knowledge gap in General — a single focused review on moment and CG procedures could measurably lift class average.<br>
+            <strong style="color:var(--text)">Thompson, K.</strong> has no exam activity on record and requires immediate outreach.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ÆRIX TAB -->
+    <div class="view" id="view-aerix">
+      <div class="aerix-full">
+        <div class="aerix-full-header">
+          <div><div class="aerix-full-logo">ÆRIX™</div><div class="aerix-full-sub">AI DIAGNOSTIC REPORTS — SELECT A STUDENT</div></div>
+          <div class="sync-badge"><span class="sync-dot"></span>Auto-generated after every exam</div>
+        </div>
+        <div class="aerix-pills" id="aerix-pills"></div>
+        <div id="aerix-tab-body"></div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="footer-strip">
+    <div class="footer-brand">FlightLine<span>Pro</span>™ · Instructor Portal · Aims Community College</div>
+    <div style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--text-muted)">Powered by ÆRIX™ AI Diagnostics</div>
+  </div>
+</div>
+
+<script>
+const S = {
+  martinez:{name:'Martinez, J.',id:'#AMT-0041',initials:'JM',
+    scores:{g:{v:84,c:'score-high'},a:{v:68,c:'score-mid'},p:{v:61,c:'score-low'}},
+    status:'At Risk',sc:'var(--yellow)',
+    hist:{
+      g:[{n:3,d:'Apr 18',v:84,b:'bar-high'},{n:2,d:'Apr 10',v:76,b:'bar-mid'},{n:1,d:'Apr 3',v:65,b:'bar-low'}],
+      a:[{n:3,d:'Apr 19',v:68,b:'bar-mid'},{n:2,d:'Apr 12',v:61,b:'bar-low'},{n:1,d:'Apr 5',v:55,b:'bar-low'}],
+      p:[{n:3,d:'Apr 21',v:61,b:'bar-low'},{n:2,d:'Apr 14',v:58,b:'bar-low'},{n:1,d:'Apr 7',v:52,b:'bar-low'}]
+    },
+    gaps:[
+      {code:'AM.I.C.K4',label:'Weight & Balance — CG Calc'},
+      {code:'AM.III.B.K1',label:'Turbine Engine Theory'},
+      {code:'AM.III.I.K2',label:'Float Carburetor / Fuel Metering'},
+      {code:'AM.II.F.K2',label:'Hydraulic System Operation'}
+    ],
+    aerix:{exam:'Powerplant',date:'Apr 21, 2026',
+      text:`Martinez scored <strong>61%</strong> on the Powerplant exam — below the FAA passing threshold of 70%. The miss pattern across 39 incorrect answers points to two distinct conceptual gaps: <strong>AM.III.B.K1</strong> (turbine engine operating principles and theory) and <strong>AM.III.I.K2</strong> (float carburetor theory and fuel metering systems).<br><br>These are not memorization failures. The error distribution suggests a fundamental misunderstanding of how fuel metering interacts with power output under varying atmospheric conditions. Simply re-reading answer explanations will not fix this.<br><br><strong>Recommended action:</strong> Review <strong>FAA-H-8083-32, Chapter 1</strong> for turbine engine operating principles and <strong>Chapter 2</strong> for fuel metering and engine fuel systems. For regulatory context on A&P certificate privileges, reference <strong>14 CFR Part 65, Subpart D</strong>.`,
+      tags:['AM.III.B.K1','AM.III.I.K2','AM.II.F.K2','8083-32 Ch.1','8083-32 Ch.2']}
+  },
+  chen:{name:'Chen, L.',id:'#AMT-0038',initials:'LC',
+    scores:{g:{v:91,c:'score-high'},a:{v:88,c:'score-high'},p:{v:79,c:'score-high'}},
+    status:'Active',sc:'var(--green)',
+    hist:{
+      g:[{n:3,d:'Apr 21',v:91,b:'bar-high'},{n:2,d:'Apr 11',v:85,b:'bar-high'},{n:1,d:'Apr 2',v:78,b:'bar-mid'}],
+      a:[{n:3,d:'Apr 20',v:88,b:'bar-high'},{n:2,d:'Apr 13',v:82,b:'bar-high'},{n:1,d:'Apr 4',v:74,b:'bar-mid'}],
+      p:[{n:2,d:'Apr 18',v:79,b:'bar-mid'},{n:1,d:'Apr 9',v:71,b:'bar-mid'}]
+    },
+    gaps:[
+      {code:'AM.I.I.K1',label:'Mechanic Certificate Privileges'}
+    ],
+    aerix:{exam:'General',date:'Apr 21, 2026',
+      text:`Chen scored <strong>91%</strong> on the General exam — well above the FAA passing threshold. This is a strong result across all topic areas.<br><br>The only consistent miss is <strong>AM.I.I.K1</strong> (privileges and limitations of a mechanic certificate). This is a regulatory knowledge gap, not a technical one — it is common among students with strong mechanical aptitude who have not given equal attention to the regulatory framework.<br><br><strong>Recommended action:</strong> A focused review of <strong>14 CFR Part 65.81</strong> and <strong>14 CFR Part 65.83</strong> will close this gap before the FAA written exam. Reference <strong>FAA-H-8083-3B, Chapter 2</strong> for the handbook overview of maintenance regulations and mechanic privileges.`,
+      tags:['AM.I.I.K1','14 CFR 65.81','14 CFR 65.83','8083-3B Ch.2']}
+  },
+  williams:{name:'Williams, D.',id:'#AMT-0029',initials:'DW',
+    scores:{g:{v:72,c:'score-mid'},a:{v:55,c:'score-low'},p:{v:null,c:'score-none'}},
+    status:'At Risk',sc:'var(--yellow)',
+    hist:{
+      g:[{n:2,d:'Apr 20',v:72,b:'bar-mid'},{n:1,d:'Apr 8',v:64,b:'bar-low'}],
+      a:[{n:3,d:'Apr 20',v:55,b:'bar-low'},{n:2,d:'Apr 11',v:51,b:'bar-low'},{n:1,d:'Apr 3',v:48,b:'bar-low'}],
+      p:[]
+    },
+    gaps:[
+      {code:'AM.II.F.K2',label:'Hydraulic System Operation'},
+      {code:'AM.II.A.K8',label:'Rivet Removal & Installation'},
+      {code:'AM.II.E.K2',label:'Landing Gear Components'}
+    ],
+    aerix:{exam:'Airframe',date:'Apr 20, 2026',
+      text:`Williams scored <strong>55%</strong> on the Airframe exam — significantly below the passing threshold on the third attempt. Scores have not meaningfully improved across three sittings (48% → 51% → 55%), which indicates a comprehension issue rather than insufficient study time.<br><br>The miss pattern is concentrated in <strong>AM.II.F.K2</strong> (hydraulic system operation) and <strong>AM.II.A.K8</strong> (rivet removal and installation methods). The consistency of these errors across three attempts confirms the underlying concepts have not been understood — not simply forgotten.<br><br><strong>Recommended action:</strong> Stop re-attempting the exam. Reference <strong>FAA-H-8083-31, Volume 1, Chapter 12</strong> for hydraulic and pneumatic system fundamentals and <strong>Chapter 4</strong> for metal structure repair and rivet procedures. Instructor-led review is strongly recommended before any further attempts.`,
+      tags:['AM.II.F.K2','AM.II.A.K8','AM.II.E.K2','8083-31 Vol.1 Ch.12','8083-31 Vol.1 Ch.4']}
+  },
+  johnson:{name:'Johnson, M.',id:'#AMT-0047',initials:'MJ',
+    scores:{g:{v:82,c:'score-high'},a:{v:80,c:'score-high'},p:{v:77,c:'score-mid'}},
+    status:'Active',sc:'var(--green)',
+    hist:{
+      g:[{n:2,d:'Apr 15',v:82,b:'bar-high'},{n:1,d:'Apr 5',v:74,b:'bar-mid'}],
+      a:[{n:2,d:'Apr 17',v:80,b:'bar-high'},{n:1,d:'Apr 7',v:71,b:'bar-mid'}],
+      p:[{n:3,d:'Apr 19',v:77,b:'bar-mid'},{n:2,d:'Apr 12',v:72,b:'bar-mid'},{n:1,d:'Apr 4',v:66,b:'bar-low'}]
+    },
+    gaps:[
+      {code:'AM.III.B.K1',label:'Turbine Engine Theory'},
+      {code:'AM.III.F.K7',label:'Wire Size & Circuit Protection'}
+    ],
+    aerix:{exam:'Powerplant',date:'Apr 19, 2026',
+      text:`Johnson scored <strong>77%</strong> on the Powerplant exam — passing, with a strong and consistent improvement trend across three attempts (66% → 72% → 77%). This reflects disciplined study engagement.<br><br>Remaining gaps are in <strong>AM.III.B.K1</strong> (turbine engine operating principles) and <strong>AM.III.F.K7</strong> (aircraft wiring sizes, types, selection, and circuit protection devices). Both are specific enough to address efficiently in a single focused session.<br><br><strong>Recommended action:</strong> Reference <strong>FAA-H-8083-32, Chapter 1</strong> for turbine engine fundamentals and <strong>Chapter 4</strong> for aircraft electrical systems and wiring. One targeted review session should push this score above 85%.`,
+      tags:['AM.III.B.K1','AM.III.F.K7','8083-32 Ch.1','8083-32 Ch.4']}
+  },
+  rodriguez:{name:'Rodriguez, A.',id:'#AMT-0033',initials:'AR',
+    scores:{g:{v:63,c:'score-low'},a:{v:59,c:'score-low'},p:{v:54,c:'score-low'}},
+    status:'At Risk',sc:'var(--red)',
+    hist:{
+      g:[{n:2,d:'Apr 17',v:63,b:'bar-low'},{n:1,d:'Apr 6',v:58,b:'bar-low'}],
+      a:[{n:2,d:'Apr 16',v:59,b:'bar-low'},{n:1,d:'Apr 5',v:54,b:'bar-low'}],
+      p:[{n:2,d:'Apr 15',v:54,b:'bar-low'},{n:1,d:'Apr 4',v:49,b:'bar-low'}]
+    },
+    gaps:[
+      {code:'AM.I.C.K4',label:'Weight & Balance — CG Calc'},
+      {code:'AM.II.F.K2',label:'Hydraulic System Operation'},
+      {code:'AM.III.B.K1',label:'Turbine Engine Theory'},
+      {code:'AM.I.I.K1',label:'Mechanic Certificate Privileges'},
+      {code:'AM.II.A.K8',label:'Rivet Removal & Installation'}
+    ],
+    aerix:{exam:'Powerplant',date:'Apr 15, 2026',
+      text:`Rodriguez scored <strong>54%</strong> on the Powerplant exam — 16 points below the FAA passing threshold. Combined with 63% on General and 59% on Airframe, this student is struggling across all three disciplines without meaningful score improvement between attempts.<br><br>The breadth of the miss pattern — spanning <strong>AM.I.C.K4</strong> (weight and balance), <strong>AM.II.F.K2</strong> (hydraulic systems), <strong>AM.III.B.K1</strong> (turbine theory), <strong>AM.I.I.K1</strong> (regulatory privileges), and <strong>AM.II.A.K8</strong> (rivet procedures) — indicates foundational comprehension gaps across all three disciplines, not isolated topic weaknesses.<br><br><strong>Recommended action:</strong> A full structured study reset is required. Prioritize: <strong>FAA-H-8083-30, Chapter 6</strong> for weight and balance; <strong>FAA-H-8083-31, Volume 1, Chapter 12</strong> for hydraulic systems; <strong>FAA-H-8083-32, Chapter 1</strong> for turbine engine theory; <strong>14 CFR Part 65, Subpart D</strong> for regulatory knowledge. Instructor intervention is required before any further exam attempts.`,
+      tags:['AM.I.C.K4','AM.II.F.K2','AM.III.B.K1','AM.I.I.K1','AM.II.A.K8','8083-30 Ch.6']}
+  },
+  patel:{name:'Patel, R.',id:'#AMT-0062',initials:'RP',
+    scores:{g:{v:58,c:'score-low'},a:{v:null,c:'score-none'},p:{v:null,c:'score-none'}},
+    status:'At Risk',sc:'var(--yellow)',
+    hist:{
+      g:[{n:2,d:'Apr 15',v:58,b:'bar-low'},{n:1,d:'Apr 8',v:52,b:'bar-low'}],
+      a:[],p:[]
+    },
+    gaps:[
+      {code:'AM.I.C.K4',label:'Weight & Balance — CG Calc'},
+      {code:'AM.I.I.K1',label:'Mechanic Certificate Privileges'},
+      {code:'AM.I.K.K3',label:'NDT Procedures & Methods'}
+    ],
+    aerix:{exam:'General',date:'Apr 15, 2026',
+      text:`Patel scored <strong>58%</strong> on the General exam on the second attempt — 12 points below the FAA passing threshold. Airframe and Powerplant have not yet been attempted, and there has been no platform activity in the past week.<br><br>The miss pattern is concentrated in <strong>AM.I.C.K4</strong> (weight and balance CG calculation procedures) and <strong>AM.I.I.K1</strong> (mechanic certificate privileges and limitations). Both are high-frequency topics on the actual FAA written exam.<br><br><strong>Recommended action:</strong> Do not advance to Airframe or Powerplant. Focus entirely on General until scoring consistently above 75%. Reference <strong>FAA-H-8083-30, Chapter 6</strong> for weight and balance — this requires repeated calculation practice, not simply re-reading the material. For regulatory knowledge, review <strong>14 CFR Part 65, Subpart D</strong> and <strong>14 CFR Part 43</strong>. Direct instructor outreach is recommended given the week of inactivity.`,
+      tags:['AM.I.C.K4','AM.I.I.K1','AM.I.K.K3','8083-30 Ch.6','14 CFR 65.D','14 CFR Part 43']}
+  },
+  okafor:{name:'Okafor, T.',id:'#AMT-0055',initials:'TO',
+    scores:{g:{v:78,c:'score-high'},a:{v:75,c:'score-mid'},p:{v:70,c:'score-mid'}},
+    status:'Active',sc:'var(--green)',
+    hist:{
+      g:[{n:2,d:'Apr 14',v:78,b:'bar-mid'},{n:1,d:'Apr 3',v:69,b:'bar-low'}],
+      a:[{n:2,d:'Apr 16',v:75,b:'bar-mid'},{n:1,d:'Apr 6',v:68,b:'bar-mid'}],
+      p:[{n:2,d:'Apr 19',v:70,b:'bar-mid'},{n:1,d:'Apr 8',v:63,b:'bar-low'}]
+    },
+    gaps:[
+      {code:'AM.III.B.K1',label:'Turbine Engine Theory'},
+      {code:'AM.III.I.K2',label:'Float Carburetor / Fuel Metering'}
+    ],
+    aerix:{exam:'Powerplant',date:'Apr 19, 2026',
+      text:`Okafor scored <strong>70%</strong> on the Powerplant exam — passing at threshold. The consistent upward trend across all three exams reflects strong study habits and platform engagement.<br><br>Remaining gaps are in <strong>AM.III.B.K1</strong> (turbine engine operating principles) and <strong>AM.III.I.K2</strong> (float carburetor theory and fuel metering systems). These topics frequently present difficulty for students who are comfortable with reciprocating engines but have not yet fully internalized turbine fuel control logic.<br><br><strong>Recommended action:</strong> Reference <strong>FAA-H-8083-32, Chapter 1</strong> for turbine engine fundamentals and <strong>Chapter 2</strong> for fuel metering systems. One focused review session should bring the Powerplant score to 78–82%. Okafor is on track to pass all three FAA written exams.`,
+      tags:['AM.III.B.K1','AM.III.I.K2','8083-32 Ch.1','8083-32 Ch.2']}
+  },
+  thompson:{name:'Thompson, K.',id:'#AMT-0071',initials:'KT',
+    scores:{g:{v:null,c:'score-none'},a:{v:null,c:'score-none'},p:{v:null,c:'score-none'}},
+    status:'No Activity',sc:'var(--text-muted)',
+    hist:{g:[],a:[],p:[]},
+    gaps:[],
+    aerix:{exam:'—',date:'No exam attempts recorded',
+      text:`Thompson has not attempted any exam since enrolling. There is no diagnostic data available and no ACS codes can be identified without exam results.<br><br><strong>Recommended action:</strong> Direct outreach from the instructor is recommended. Thompson has full platform access but has not engaged with any exam engine. Students who begin practice exams within the first two weeks of enrollment pass at significantly higher rates — early engagement is the strongest leading indicator of success on the FAA written exams.`,
+      tags:['no_data','no_attempts']}
+  }
+};
+
+let prevTab = 'overview';
+
+function scoreColor(v){ return v===null?'var(--text-dim)':v>=75?'var(--green)':v>=65?'var(--yellow)':'var(--red)'; }
+function scoreVal(v){ return v===null?'—':v+'%'; }
+
+function showTab(t){
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(v=>v.classList.remove('active'));
+  document.getElementById('view-'+t).classList.add('active');
+  const tel=document.getElementById('tab-'+t);
+  if(tel) tel.classList.add('active');
+  const titles={overview:'Program Dashboard',roster:'Student Roster',student:'Student Detail',acs:'ACS Gap Report',aerix:'ÆRIX™ Diagnostics'};
+  document.getElementById('topbar-title').textContent=titles[t]||'';
+  if(t==='aerix') initAerixTab();
+}
+
+function setNav(t){
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  const map={overview:'nav-overview',roster:'nav-roster',acs:'nav-acs',aerix:'nav-aerix'};
+  const el=document.getElementById(map[t]);
+  if(el) el.classList.add('active');
+}
+
+function renderHist(arr){
+  if(!arr.length) return '<div style="font-size:12px;color:var(--text-muted);text-align:center;padding:16px 0">No attempts recorded</div>';
+  return [...arr].reverse().map(a=>{
+    const c=a.v>=75?'var(--green)':a.v>=65?'var(--yellow)':'var(--red)';
+    return `<div class="attempt-row"><div class="attempt-num">#${a.n}</div><div class="attempt-date">${a.d}</div><div class="attempt-bar-bg"><div class="attempt-bar-fill ${a.b}" style="width:${a.v}%"></div></div><div class="attempt-pct" style="color:${c}">${a.v}%</div></div>`;
+  }).join('');
+}
+
+function showStudent(key){
+  prevTab=document.querySelector('.tab.active')?.id?.replace('tab-','')||'overview';
+  const s=S[key];
+  document.getElementById('back-btn').textContent='← Back to '+(prevTab==='overview'?'Dashboard':prevTab.charAt(0).toUpperCase()+prevTab.slice(1));
+  document.getElementById('student-hero').innerHTML=`
+    <div style="display:flex;align-items:center;gap:20px;">
+      <div class="student-avatar">${s.initials}</div>
+      <div><div class="student-hero-name">${s.name}</div><div class="student-hero-meta">${s.id} · AMT-101 · Spring 2026 · <span style="color:${s.sc}">${s.status}</span></div></div>
+    </div>
+    <div class="student-hero-scores">
+      ${['g','a','p'].map((e,i)=>`<div class="hero-score-item"><div class="hero-score-label">${['General','Airframe','Powerplant'][i]}</div><div class="hero-score-val" style="color:${scoreColor(s.scores[e].v)}">${scoreVal(s.scores[e].v)}</div></div>`).join('')}
+    </div>`;
+  document.getElementById('hist-general').innerHTML=renderHist(s.hist.g);
+  document.getElementById('hist-airframe').innerHTML=renderHist(s.hist.a);
+  document.getElementById('hist-powerplant').innerHTML=renderHist(s.hist.p);
+  const widths=[90,72,55,40,28];
+  document.getElementById('student-gaps').innerHTML=s.gaps.length
+    ?s.gaps.map((g,i)=>`<div class="gap-row"><div class="gap-code">${g.code}</div><div class="gap-label">${g.label}</div><div class="gap-bar-bg" style="width:100px"><div class="gap-bar-fill" style="width:${widths[i]||20}%"></div></div></div>`).join('')
+    :'<div style="font-size:12px;color:var(--text-muted)">No significant gaps identified.</div>';
+  document.getElementById('aerix-ts').textContent=s.aerix.date;
+  document.getElementById('aerix-detail').innerHTML=`<div class="aerix-diag-body"><div class="aerix-diag-name">${s.name}</div><div class="aerix-diag-meta">Last exam: ${s.aerix.exam} · ${s.aerix.date}</div><div class="aerix-diag-text">${s.aerix.text}</div><div class="aerix-tags">${s.aerix.tags.map(t=>`<span class="aerix-tag">${t}</span>`).join('')}</div></div>`;
+  showTab('student');
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+}
+
+function goBack(){ showTab(prevTab); setNav(prevTab); }
+
+function initAerixTab(){
+  const keys=Object.keys(S);
+  document.getElementById('aerix-pills').innerHTML=keys.map((k,i)=>`<span class="aerix-pill${i===0?' active':''}" onclick="selectAerix('${k}',this)">${S[k].name}</span>`).join('');
+  renderAerixDiag('martinez');
+}
+
+function selectAerix(key,el){
+  document.querySelectorAll('.aerix-pill').forEach(p=>p.classList.remove('active'));
+  el.classList.add('active');
+  renderAerixDiag(key);
+}
+
+function renderAerixDiag(key){
+  const s=S[key];
+  document.getElementById('aerix-tab-body').innerHTML=`<div class="aerix-diag-body"><div class="aerix-diag-name">${s.name}</div><div class="aerix-diag-meta">Last exam: ${s.aerix.exam} · ${s.aerix.date}</div><div class="aerix-diag-text">${s.aerix.text}</div><div class="aerix-tags">${s.aerix.tags.map(t=>`<span class="aerix-tag">${t}</span>`).join('')}</div></div>`;
+}
+
+initAerixTab();
+</script>
+</body>
+</html>
